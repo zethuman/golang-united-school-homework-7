@@ -46,7 +46,7 @@ func TestLess(t *testing.T) {
 	}{
 		"first_element_less": { expected: true, people: People{ {firstName: "Rakhat", lastName: "Zhuman", birthDay: time.Now(),}, {firstName: "Almas", lastName: "Alimkulov", birthDay: time.Now(),} } },
 		"first_name_is_equal": { expected: true, people: People{ {firstName: "Rakhat", lastName: "Zhuman", birthDay: timeEqual,}, {firstName: "Rakhat", lastName: "Alimkulov", birthDay: timeEqual,} } },
-		"birth_date_not_equal": { expected: true, people: People{ {firstName: "Rakhat", lastName: "Zhuman", birthDay: timeFuture, }, {firstName: "Rakhat", lastName: "Alimkulov", birthDay: time.Now(),} } },
+		"birth_date_not_equal": { expected: false, people: People{ {firstName: "Rakhat", lastName: "Zhuman", birthDay: timeFuture, }, {firstName: "Rakhat", lastName: "Alimkulov", birthDay: time.Now(),} } },
 	}
 
 	for name, tCase := range tables {
@@ -89,29 +89,24 @@ func TestNew(t *testing.T) {
 	tables := map[string]struct {
 		row string
 		expected *Matrix
+		Error error
 	}{
-		"success": {row: "123123\n123123", expected: &Matrix{rows: 2, cols: 1, data: []int{123123, 123123}}},
-		"rows_same_length": {row: "123123\n123123 432\n"},
-		"empty": {row: "asdasd"},
+		"success": {row: "123123\n123123", expected: &Matrix{rows: 2, cols: 1, data: []int{123123, 123123}}, Error: nil},
+		"rows_same_length": {row: "123123\n123123 432\n", expected: nil,  Error: fmt.Errorf("Rows need to be the same length")},
+		"num_error": {row: "asdasd", expected: nil, Error: &strconv.NumError{}},
 	}
 
 	for name, tCase := range tables {
 		t.Run(name, func(t *testing.T){
 			mtx, err := New(tCase.row)
 
-			t.Log(errors.Unwrap(err))
-
-			if errors.Unwrap(err) == fmt.Errorf("Rows need to be the same length") {
-				t.Errorf("[%s] error happened while not expected %s", name, err.Error())
-			}
-
-			if errors.Is(err, &strconv.NumError{}) {
-				t.Errorf("[%s] error happened while not expected %s", name, err.Error())
+			if err != nil && !errors.Is(err, &strconv.NumError{}) {
+				t.Logf("[%s] error happened while not expected %s", name, err)
 				return
 			}
 
-			if err != nil || mtx == nil {
-				t.Errorf("[%s] error happened while not expected %s", name, err.Error())
+			if err != nil && errors.Unwrap(err) != fmt.Errorf("Rows need to be the same length")  {
+				t.Logf("[%s] error happened while not expected %s", name, err)
 				return
 			}
 
