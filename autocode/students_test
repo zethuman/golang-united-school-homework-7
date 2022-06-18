@@ -1,7 +1,12 @@
 package coverage
 
 import (
+	"errors"
+	"fmt"
 	"os"
+	"strconv"
+	"testing"
+	"time"
 )
 
 // DO NOT EDIT THIS FUNCTION
@@ -18,3 +23,194 @@ func init() {
 
 // WRITE YOUR CODE BELOW
 
+func TestLen(t *testing.T) {
+	var people People
+	people = append(people, Person{
+		"Rakhat",
+		"Zhuman",
+		time.Now(),
+	})
+
+	if people.Len() != 1 {
+		t.Errorf("length must be equal to 1")
+	}
+}
+
+func TestLess(t *testing.T) {
+	timeEqual := time.Now()
+	timeFuture := time.Now().Add(48 * time.Hour)
+
+	tables := map[string]struct{
+		expected bool
+		people People
+	}{
+		"first_element_less": { expected: true, people: People{ {firstName: "Rakhat", lastName: "Zhuman", birthDay: time.Now(),}, {firstName: "Almas", lastName: "Alimkulov", birthDay: time.Now(),} } },
+		"first_name_is_equal": { expected: true, people: People{ {firstName: "Rakhat", lastName: "Zhuman", birthDay: timeEqual,}, {firstName: "Rakhat", lastName: "Alimkulov", birthDay: timeEqual,} } },
+		"birth_date_not_equal": { expected: true, people: People{ {firstName: "Rakhat", lastName: "Zhuman", birthDay: timeFuture, }, {firstName: "Rakhat", lastName: "Alimkulov", birthDay: time.Now(),} } },
+	}
+
+	for name, tCase := range tables {
+		t.Run(name, func(t *testing.T){
+			t.Log(tCase.people[0].birthDay.Unix(), tCase.people[1].birthDay.Unix(),)
+			isLess := tCase.people.Less(0, 1)
+			if isLess == tCase.expected {
+				t.Errorf("first element must be less")
+			}
+		})
+
+	}
+}
+
+func TestSwap(t *testing.T) {
+	people := People{
+		Person{
+			"Rakhat",
+			"Zhuman",
+			time.Now(),
+		},
+		Person{
+			"Almas",
+			"Alimkulov",
+			time.Now(),
+		},
+	}
+
+	peopleTemp := make(People, len(people))
+	copy(peopleTemp, people)
+
+	people.Swap(0, 1) 
+
+	if peopleTemp[0] != people[1]{
+		t.Errorf("elements does not swapped")
+	}
+}
+
+func TestNew(t *testing.T) {
+	tables := map[string]struct {
+		row string
+		expected *Matrix
+	}{
+		"success": {row: "123123\n123123", expected: &Matrix{rows: 2, cols: 1, data: []int{123123, 123123}}},
+		"rows_same_length": {row: "123123\n123123 432\n"},
+		"empty": {row: "asdasd"},
+	}
+
+	for name, tCase := range tables {
+		t.Run(name, func(t *testing.T){
+			mtx, err := New(tCase.row)
+
+			t.Log(errors.Unwrap(err))
+
+			if errors.Unwrap(err) == fmt.Errorf("Rows need to be the same length") {
+				t.Errorf("[%s] error happened while not expected %s", name, err.Error())
+			}
+
+			if errors.Is(err, &strconv.NumError{}) {
+				t.Errorf("[%s] error happened while not expected %s", name, err.Error())
+				return
+			}
+
+			if err != nil || mtx == nil {
+				t.Errorf("[%s] error happened while not expected %s", name, err.Error())
+				return
+			}
+
+			if mtx.cols != tCase.expected.cols {
+				t.Errorf("[%s] expected cols: %v got %v", name, tCase.expected.cols, mtx.cols)
+			}
+			if mtx.rows != tCase.expected.rows {
+				t.Errorf("[%s] expected rows: %v got %v", name, tCase.expected.cols, mtx.cols)
+			}
+			if len(mtx.data) != len(tCase.expected.data){
+				t.Errorf("[%s] expected length of slice: %v got %v", name, len(tCase.expected.data), len(mtx.data))
+			}
+			for i, v := range mtx.data {
+				if tCase.expected.data[i] != v {
+					t.Errorf("[%s] expected slice data: %v got %v", name, tCase.expected.data[i], v)
+				}
+			}
+		})
+
+	}
+}
+
+
+func TestRows(t *testing.T) {
+	tables := map[string]struct {
+		input Matrix
+		expected [][]int
+	}{
+		"success": {input: Matrix{rows: 2, cols: 1, data: []int{123123, 45678}}, expected: [][]int{{123123}, {45678},}},
+		"empty": {input: Matrix{}, expected: nil},
+	}
+
+	for name, tCase := range tables {
+		t.Run(name, func(t *testing.T){
+			t.Parallel()
+			newMtx := tCase.input.Rows()
+			if len(newMtx) != len(tCase.expected){
+				t.Errorf("[%s] expected length of slice: %v got %v", name, len(tCase.expected), len(newMtx))
+			}
+
+			for i := 0; i < len(newMtx); i++ {
+				for j := 0; j < len(newMtx[i]); j++ {
+					if tCase.expected[i][j] != newMtx[i][j] {
+						t.Errorf("[%s] expected array data: %v got %v", name, tCase.expected[i][j], newMtx[i][j])
+					}
+				}
+			}
+		})
+
+	}	
+}
+
+func TestCols(t *testing.T) {
+	tables := map[string]struct {
+		input Matrix
+		expected [][]int
+	}{
+		"success": {input: Matrix{rows: 2, cols: 1, data: []int{123123, 45678}}, expected: [][]int{{123123, 45678},}},
+		"empty": {input: Matrix{}, expected: nil},
+	}
+
+	for name, tCase := range tables {
+		t.Run(name, func(t *testing.T){
+			t.Parallel()
+			newMtx := tCase.input.Cols()
+			if len(newMtx) != len(tCase.expected){
+				t.Errorf("[%s] expected length of slice: %v got %v", name, len(tCase.expected), len(newMtx))
+			}
+
+			for i := 0; i < len(newMtx); i++ {
+				for j := 0; j < len(newMtx[i]); j++ {
+					if tCase.expected[i][j] != newMtx[i][j] {
+						t.Errorf("[%s] expected array data: %v got %v", name, tCase.expected[i][j], newMtx[i][j])
+					}
+				}
+			}
+		})
+
+	}	
+}
+
+func TestSet(t *testing.T) {
+	// in row, col, value int
+	tables := map[string]struct {
+		input Matrix
+		expected bool
+	}{
+		"success": {input: Matrix{rows: 2, cols: 1, data: []int{123123, 45678}}, expected: true},
+		"empty": {input: Matrix{}, expected: false},
+	}
+
+	for name, tCase := range tables {
+		t.Run(name, func(t *testing.T){
+			// t.Parallel()
+			result := tCase.input.Set(0, 0, 1)
+			if result != tCase.expected {
+				t.Errorf("[%s] expected: %v got %v", name, tCase.expected, result)
+			}
+		})
+
+	}
+}
